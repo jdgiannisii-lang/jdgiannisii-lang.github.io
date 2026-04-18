@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GC Futures Terminal — ICT / SMC</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0D0D0F;
+    color: #F0F0F0;
+    min-height: 100vh;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .mono { font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace; }
+  .card {
+    background: #141416;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 18px;
+    padding: 20px;
+    transition: border-color 0.3s ease;
+  }
+  .card:hover { border-color: rgba(240,180,41,0.13); }
+  .label {
+    font-size: 10.5px;
+    color: #444;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 12px;
+  }
+  @keyframes breathe { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(.7)} }
+  @keyframes float   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+  @keyframes scroll-left { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+  @keyframes cursor-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  @keyframes bar-in { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+  @keyframes shimmer-move { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+  .breathe    { animation: breathe 2s ease-in-out infinite; }
+  .float-badge { animation: float 3s ease-in-out infinite; }
+  .ticker-inner { display:flex; white-space:nowrap; animation: scroll-left 38s linear infinite; }
+  .ticker-inner:hover { animation-play-state: paused; }
+  .cursor {
+    display: inline-block; width: 2px; height: .9em;
+    background: #BA7517; margin-left: 1px; vertical-align: text-bottom;
+    animation: cursor-blink .9s step-end infinite;
+  }
+  .check-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 8px; border-radius: 8px; cursor: pointer;
+    transition: background .15s; user-select: none;
+  }
+  .check-row:hover  { background: rgba(255,255,255,0.04); }
+  .check-row:active { transform: scale(.98); }
+  .check-box {
+    width: 15px; height: 15px; border-radius: 4px;
+    border: 1.5px solid rgba(255,255,255,0.14);
+    display: flex; align-items: center; justify-content: center;
+    transition: all .2s; flex-shrink: 0;
+  }
+  .check-box.on { border-color: #3B6D11; background: rgba(99,153,34,0.18); }
+  .tag {
+    padding: 3px 9px; border-radius: 6px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    font-size: 11px; color: #555; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all .15s;
+  }
+  .tag:hover { border-color: #BA7517; color: #BA7517; }
+  .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+  .bottom-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; }
+  @media (max-width: 700px) {
+    .main-grid, .bottom-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div style="display:flex;justify-content:space-between;align-items:center;padding:4px;">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div style="width:30px;height:30px;border-radius:8px;background:#2A1F07;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#F0B429;font-family:'JetBrains Mono',monospace;flex-shrink:0;">Au</div>
+    <div>
+      <div style="font-size:14px;font-weight:600;letter-spacing:-.02em;line-height:1.2;">GC Futures Terminal</div>
+      <div style="font-size:11px;color:#555;font-family:'JetBrains Mono',monospace;">Micro gold · ICT / SMC</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div class="breathe" style="width:7px;height:7px;border-radius:50%;background:#639922;flex-shrink:0;"></div>
+    <span style="font-size:11px;color:#444;font-family:'JetBrains Mono',monospace;letter-spacing:.05em;">LIVE · NY SESSION</span>
+  </div>
+</div>
+
+<!-- MAIN GRID -->
+<div class="main-grid">
+
+  <!-- PRICE HERO -->
+  <div class="card" style="position:relative;overflow:hidden;">
+    <div style="position:absolute;top:0;right:0;width:220px;height:180px;background:radial-gradient(circle at 80% 20%,rgba(240,180,41,0.06) 0%,transparent 70%);pointer-events:none;"></div>
+    <div class="label">Gold continuous (GC1!) — USD / troy oz</div>
+    <div style="display:flex;align-items:flex-end;gap:14px;margin-bottom:6px;">
+      <div id="price-el" class="mono" style="font-size:52px;font-weight:700;line-height:1;letter-spacing:-.04em;color:#F0F0F0;">$3,249.60</div>
+      <div id="delta-el" style="font-size:14px;font-weight:600;color:#639922;margin-bottom:8px;display:flex;align-items:center;gap:3px;">
+        <svg id="delta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="7" y1="17" x2="17" y2="7"/><polyline points="7,7 17,7 17,17"/>
+        </svg>
+        <span id="delta-text">+1.47%</span>
+      </div>
+    </div>
+    <div class="mono" style="font-size:11px;color:#383838;margin-bottom:14px;">ATH $3,501.40 · Target $3,271 · Stop $3,218</div>
+    <svg id="spark" viewBox="0 0 400 70" preserveAspectRatio="none" style="width:100%;height:70px;display:block;"></svg>
+    <div style="height:1px;background:rgba(255,255,255,0.05);margin-top:14px;border-radius:1px;overflow:hidden;">
+      <div style="height:100%;background:linear-gradient(90deg,transparent,rgba(240,180,41,0.4),transparent);animation:shimmer-move 2.5s ease-in-out infinite;width:40%;"></div>
+    </div>
+  </div>
+
+  <!-- CHECKLIST -->
+  <div class="card" style="display:flex;flex-direction:column;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div>
+        <div style="font-size:13px;font-weight:600;letter-spacing:-.015em;">ICT checklist</div>
+        <div id="criteria-count" class="mono" style="font-size:11px;color:#444;margin-top:2px;">4 / 6 criteria met</div>
+      </div>
+      <div id="valid-badge" style="padding:3px 10px;border-radius:100px;background:rgba(99,153,34,0.18);color:#639922;font-size:10.5px;font-weight:700;letter-spacing:.07em;">VALID</div>
+    </div>
+    <div style="height:3px;background:rgba(255,255,255,0.05);border-radius:2px;margin-bottom:14px;overflow:hidden;">
+      <div id="progress-bar" style="height:100%;border-radius:2px;width:66%;background:#639922;transform-origin:left;animation:bar-in .6s cubic-bezier(.16,1,.3,1) both;transition:width .4s ease,background .3s ease;"></div>
+    </div>
+    <div id="checklist-items" style="display:flex;flex-direction:column;gap:2px;flex:1;"></div>
+  </div>
+</div>
+
+<!-- BOTTOM GRID -->
+<div class="bottom-grid">
+
+  <!-- COMMAND BAR -->
+  <div class="card">
+    <div class="label">ICT analysis engine</div>
+    <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:13px 16px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#999;min-height:52px;display:flex;align-items:center;">
+      <span style="color:#F0B429;margin-right:8px;font-size:15px;">›</span>
+      <span id="typewriter-el"></span><span class="cursor"></span>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;">
+      <div class="tag">4H bias</div>
+      <div class="tag">FVG scan</div>
+      <div class="tag">OTE level</div>
+      <div class="tag">liquidity</div>
+      <div class="tag">iFVG</div>
+    </div>
+  </div>
+
+  <!-- SESSIONS + BIAS -->
+  <div class="card">
+    <div class="label">Market sessions</div>
+    <div style="display:flex;flex-direction:column;gap:11px;margin-bottom:18px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;align-items:center;gap:9px;">
+          <div style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.1);flex-shrink:0;"></div>
+          <span style="font-size:13px;color:#444;">Tokyo</span>
+        </div>
+        <span class="mono" style="font-size:11px;color:#2A2A2A;">CLOSED</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;align-items:center;gap:9px;">
+          <div style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.1);flex-shrink:0;"></div>
+          <span style="font-size:13px;color:#444;">London</span>
+        </div>
+        <span class="mono" style="font-size:11px;color:#2A2A2A;">CLOSED</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;align-items:center;gap:9px;">
+          <div class="breathe" style="width:7px;height:7px;border-radius:50%;background:#639922;flex-shrink:0;"></div>
+          <span style="font-size:13px;color:#D8D8D8;font-weight:500;">New York</span>
+        </div>
+        <span class="mono" style="font-size:11px;color:#639922;">OPEN</span>
+      </div>
+    </div>
+    <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;">
+      <div class="label" style="margin-bottom:9px;">Intraday bias</div>
+      <div class="float-badge" style="display:inline-flex;align-items:center;gap:7px;padding:6px 14px;border-radius:100px;background:rgba(99,153,34,0.15);border:1px solid rgba(99,153,34,0.25);color:#97C459;font-size:13px;font-weight:700;letter-spacing:.1em;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/>
+        </svg>
+        BULLISH
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MACRO TICKER -->
+<div class="card" style="padding:0;overflow:hidden;">
+  <div style="display:flex;align-items:stretch;">
+    <div style="padding:10px 14px;background:#1A1100;display:flex;align-items:center;gap:6px;flex-shrink:0;border-right:1px solid rgba(240,180,41,0.15);">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="#F0B429"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></svg>
+      <span style="font-size:10.5px;font-weight:700;color:#F0B429;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;">MACRO</span>
+    </div>
+    <div style="overflow:hidden;flex:1;display:flex;align-items:center;">
+      <div class="ticker-inner">
+        <span id="ticker-content"></span><span id="ticker-content-2"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var TICKER = [
+  "FOMC minutes: no rate change expected Q2 2026",
+  "GC1! ATH: $3,501.40 — April 17, 2026",
+  "NFP: +187K  ·  exp +210K — stagflation signal active",
+  "ISM services PMI: 49.8 — below expansion threshold",
+  "Powell (Harvard): patient stance on rate cuts",
+  "DXY: 98.72 — 2-year low, tailwind for gold",
+  "4H FVG: $3,228–$3,231  ·  draw on liquidity: $3,271",
+  "ADP: +142K — labor market cooling continues",
+  "10Y yield: 4.21% — safe haven flows confirmed",
+  "CFTC CoT: net long positioning increasing for GC",
+];
+
+var PROMPTS = [
+  "Scanning buy-side liquidity above 3,271...",
+  "IFVG confirmed: 3,228–3,231. Valid entry zone.",
+  "4H FVG fill complete. Watching OTE at 61.8%.",
+  "SMT divergence w/ MES flagged at 14:32 NY — bullish.",
+  "HTF PD-Array: monthly breaker active. Bias UP.",
+  "Liquidity sweep below 3,218 absorbed. Long bias intact.",
+];
+
+var CHECKLIST = [
+  {id:1, label:"IFVG identified",           checked:true},
+  {id:2, label:"Liquidity sweep confirmed",  checked:true},
+  {id:3, label:"SMT w/ MES",                checked:false},
+  {id:4, label:"HTF PD-Array alignment",    checked:true},
+  {id:5, label:"Premium / discount zone",   checked:true},
+  {id:6, label:"Adequate risk (R:R > 3)",   checked:false},
+];
+
+var price = 3249.60, priceDelta = 1.47, priceHist = [];
+for(var i=0;i<70;i++){price+=(Math.random()-.47)*2.5;priceHist.push(price);}
+
+function drawSpark(){
+  var svg=document.getElementById("spark"); if(!svg)return;
+  var W=400,H=70,d=priceHist.slice(-70);
+  var mn=Math.min.apply(null,d)-1,mx=Math.max.apply(null,d)+1,rng=mx-mn;
+  var pts=d.map(function(v,i){return [i*(W/(d.length-1)),H-((v-mn)/rng)*(H-8)-4];});
+  var path=pts.map(function(p,i){return(i===0?"M":"L")+p[0].toFixed(1)+","+p[1].toFixed(1);}).join(" ");
+  var fill=path+" L"+pts[pts.length-1][0]+","+H+" L0,"+H+" Z";
+  svg.innerHTML='<defs><linearGradient id="gg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F0B429" stop-opacity="0.22"/><stop offset="100%" stop-color="#F0B429" stop-opacity="0"/></linearGradient></defs>'
+    +'<path d="'+fill+'" fill="url(#gg)"/>'
+    +'<path d="'+path+'" fill="none" stroke="#F0B429" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+    +'<circle cx="'+pts[pts.length-1][0]+'" cy="'+pts[pts.length-1][1]+'" r="4" fill="#F0B429"/>';
+}
+
+function renderChecklist(){
+  var el=document.getElementById("checklist-items"); if(!el) return;
+  var cnt=CHECKLIST.filter(function(i){return i.checked;}).length;
+  document.getElementById("criteria-count").textContent=cnt+" / "+CHECKLIST.length+" criteria met";
+  var pct=(cnt/CHECKLIST.length)*100;
+  document.getElementById("progress-bar").style.width=pct+"%";
+  document.getElementById("progress-bar").style.background=cnt>=5?"#639922":"#F0B429";
+  var badge=document.getElementById("valid-badge");
+  if(cnt>=5){badge.style.background="rgba(99,153,34,0.18)";badge.style.color="#639922";badge.textContent="VALID";}
+  else{badge.style.background="rgba(239,68,68,0.15)";badge.style.color="#EF4444";badge.textContent="WAIT";}
+  el.innerHTML=CHECKLIST.map(function(item){
+    return '<div class="check-row" onclick="toggleCheck('+item.id+')">'
+      +'<div class="check-box'+(item.checked?" on":"")+'">'+
+        (item.checked?'<svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.5 6L8 1" stroke="#639922" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>':'')
+      +'</div>'
+      +'<span style="font-size:12px;font-family:\'JetBrains Mono\',monospace;color:'+(item.checked?'#D0D0D0':'#333')+';">'+item.label+'</span>'
+      +'</div>';
+  }).join("");
+}
+
+function toggleCheck(id){
+  CHECKLIST=CHECKLIST.map(function(i){return i.id===id?Object.assign({},i,{checked:!i.checked}):i;});
+  renderChecklist();
+}
+
+var tickHtml=TICKER.map(function(t){
+  return '<span style="font-size:11.5px;color:#555;font-family:\'JetBrains Mono\',monospace;padding-right:48px;"><span style="color:#F0B429;margin-right:7px;">·</span>'+t+'</span>';
+}).join("");
+document.getElementById("ticker-content").innerHTML=tickHtml;
+document.getElementById("ticker-content-2").innerHTML=tickHtml;
+
+var twIdx=0,twChar=0,twDel=false,twText="";
+function tickTW(){
+  var p=PROMPTS[twIdx],speed=twDel?20:50;
+  if(!twDel&&twChar<p.length){twChar++;twText=p.slice(0,twChar);}
+  else if(!twDel&&twChar===p.length){setTimeout(function(){twDel=true;},2200);}
+  else if(twDel&&twChar>0){twChar--;twText=p.slice(0,twChar);}
+  else{twDel=false;twIdx=(twIdx+1)%PROMPTS.length;}
+  var el=document.getElementById("typewriter-el");if(el)el.textContent=twText;
+  setTimeout(tickTW,speed);
+}
+
+function updatePrice(){
+  var d=(Math.random()-.472)*1.4;
+  price=Math.max(3100,price+d);
+  priceDelta=parseFloat((priceDelta+d*0.04).toFixed(2));
+  priceHist.push(price);if(priceHist.length>80)priceHist.shift();
+  var pel=document.getElementById("price-el");
+  if(pel)pel.textContent="$"+price.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  var de=document.getElementById("delta-el"),dt=document.getElementById("delta-text"),da=document.getElementById("delta-arrow");
+  var up=priceDelta>=0;
+  if(de)de.style.color=up?"#639922":"#EF4444";
+  if(dt)dt.textContent=(up?"+":"")+priceDelta.toFixed(2)+"%";
+  if(da)da.innerHTML=up
+    ?'<line x1="7" y1="17" x2="17" y2="7"/><polyline points="7,7 17,7 17,17"/>'
+    :'<line x1="7" y1="7" x2="17" y2="17"/><polyline points="17,7 17,17 7,17"/>';
+  drawSpark();
+}
+
+drawSpark();
+renderChecklist();
+setTimeout(tickTW, 500);
+setInterval(updatePrice, 1400);
+window.addEventListener("resize", drawSpark);
+</script>
+</body>
+</html>
